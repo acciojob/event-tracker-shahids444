@@ -6,10 +6,6 @@ const dateUtils = {
     const d = new Date(date);
     const months = ['January', 'February', 'March', 'April', 'May', 'June',
                    'July', 'August', 'September', 'October', 'November', 'December'];
-    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     if (format === 'MMMM YYYY') {
       return `${months[d.getMonth()]} ${d.getFullYear()}`;
@@ -77,92 +73,127 @@ const dateUtils = {
   }
 };
 
-// Mock react-big-calendar components for this demo
+// Mock react-big-calendar components with proper structure
 const Calendar = ({ localizer, events, startAccessor, endAccessor, titleAccessor, onSelectSlot, onSelectEvent, eventPropGetter, views, defaultView, style }) => {
   const today = new Date();
-  const startOfMonth = dateUtils.startOfMonth(today);
-  const endOfMonth = dateUtils.endOfMonth(today);
+  const [currentDate] = useState(today);
+  const startOfMonth = dateUtils.startOfMonth(currentDate);
+  const endOfMonth = dateUtils.endOfMonth(currentDate);
   const startOfCalendar = dateUtils.startOfWeek(startOfMonth);
   const endOfCalendar = dateUtils.endOfWeek(endOfMonth);
   
-  const days = [];
+  // Generate all days for the calendar view (42 days = 6 weeks)
+  const calendarDays = [];
   let currentDay = new Date(startOfCalendar);
   
-  while (currentDay <= endOfCalendar) {
-    days.push(new Date(currentDay));
+  // Generate 6 weeks of days (42 days total)
+  for (let i = 0; i < 42; i++) {
+    calendarDays.push(new Date(currentDay));
     currentDay = dateUtils.addDays(currentDay, 1);
   }
 
   const weeks = [];
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7));
+  for (let i = 0; i < calendarDays.length; i += 7) {
+    weeks.push(calendarDays.slice(i, i + 7));
   }
 
   return (
     <div style={style} className="rbc-calendar">
       <div className="rbc-toolbar">
-        <span className="rbc-toolbar-label">{dateUtils.format(today, 'MMMM YYYY')}</span>
+        <span className="rbc-toolbar-label">{dateUtils.format(currentDate, 'MMMM YYYY')}</span>
       </div>
       <div className="rbc-month-view">
         <div className="rbc-month-header">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="rbc-header" style={{ padding: '8px', backgroundColor: '#f8f9fa', border: '1px solid #ddd', fontWeight: 'bold' }}>{day}</div>
+            <div key={day} className="rbc-header" style={{ padding: '8px', backgroundColor: '#f8f9fa', border: '1px solid #ddd', fontWeight: 'bold', textAlign: 'center' }}>{day}</div>
           ))}
         </div>
-        {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} className="rbc-month-row" style={{ display: 'flex' }}>
-            {week.map(day => {
-              const dayEvents = events.filter(event => 
-                dateUtils.isSameDay(event.start, day)
-              );
-              
-              return (
-                <div 
-                  key={dateUtils.format(day, 'YYYY-MM-DD')} 
-                  className={`rbc-date-cell ${dateUtils.isSameMonth(day, today) ? '' : 'rbc-off-range'}`}
-                  onClick={() => onSelectSlot({ start: day, end: day })}
-                  style={{ 
-                    cursor: 'pointer', 
-                    minHeight: '100px', 
-                    border: '1px solid #ddd', 
-                    padding: '4px',
-                    flex: 1,
-                    backgroundColor: dateUtils.isSameMonth(day, today) ? 'white' : '#f8f9fa'
-                  }}
-                >
-                  <span className="rbc-date-cell-value" style={{ fontWeight: dateUtils.isSameDay(day, today) ? 'bold' : 'normal' }}>
-                    {dateUtils.format(day, 'D')}
-                  </span>
-                  {dayEvents.map((event, idx) => {
-                    const eventStyle = eventPropGetter ? eventPropGetter(event) : {};
-                    return (
-                      <div
-                        key={idx}
-                        className="rbc-event"
-                        style={{
-                          backgroundColor: eventStyle.style?.backgroundColor || '#3174ad',
-                          color: 'white',
-                          padding: '2px 4px',
-                          margin: '1px 0',
-                          borderRadius: '3px',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          wordBreak: 'break-word'
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectEvent(event);
+        <div className="rbc-month-body">
+          {weeks.map((week, weekIndex) => (
+            <div key={weekIndex} className="rbc-month-row" style={{ display: 'flex', position: 'relative', minHeight: '120px' }}>
+              <div className="rbc-row-bg" style={{ display: 'flex', width: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                {week.map((day, dayIndex) => (
+                  <div 
+                    key={dayIndex}
+                    className="rbc-day-bg"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Day clicked:', day);
+                      onSelectSlot({ start: day, end: day });
+                    }}
+                    style={{ 
+                      flex: 1,
+                      cursor: 'pointer',
+                      border: '1px solid #ddd',
+                      backgroundColor: dateUtils.isSameMonth(day, currentDate) ? 'white' : '#f8f9fa',
+                      opacity: dateUtils.isSameMonth(day, currentDate) ? 1 : 0.7
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="rbc-row-content" style={{ display: 'flex', width: '100%', position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
+                {week.map((day, dayIndex) => {
+                  const dayEvents = events.filter(event => 
+                    dateUtils.isSameDay(event.start, day)
+                  );
+                  
+                  return (
+                    <div 
+                      key={dayIndex}
+                      className="rbc-date-cell"
+                      style={{ 
+                        flex: 1,
+                        padding: '4px',
+                        border: '1px solid transparent',
+                        backgroundColor: 'transparent',
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <span 
+                        className="rbc-date-cell-value" 
+                        style={{ 
+                          fontWeight: dateUtils.isSameDay(day, today) ? 'bold' : 'normal',
+                          color: dateUtils.isSameMonth(day, currentDate) ? '#333' : '#999',
+                          display: 'block',
+                          marginBottom: '4px'
                         }}
                       >
-                        {event[titleAccessor]}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                        {dateUtils.format(day, 'D')}
+                      </span>
+                      {dayEvents.map((event, idx) => {
+                        const eventStyle = eventPropGetter ? eventPropGetter(event) : {};
+                        return (
+                          <div
+                            key={idx}
+                            className="rbc-event"
+                            style={{
+                              backgroundColor: eventStyle.style?.backgroundColor || '#3174ad',
+                              color: 'white',
+                              padding: '2px 4px',
+                              margin: '1px 0',
+                              borderRadius: '3px',
+                              fontSize: '11px',
+                              cursor: 'pointer',
+                              wordBreak: 'break-word',
+                              pointerEvents: 'all'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectEvent(event);
+                            }}
+                          >
+                            {event[titleAccessor]}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
