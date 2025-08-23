@@ -116,6 +116,7 @@ const Calendar = ({ localizer, events, startAccessor, endAccessor, titleAccessor
                   <div 
                     key={dayIndex}
                     className="rbc-day-bg"
+                    data-testid={`day-${dateUtils.format(day, 'YYYY-MM-DD')}`}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
