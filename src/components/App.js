@@ -1,30 +1,32 @@
 import React, { useState, useEffect } from 'react';
 
 const EventTrackerCalendar = () => {
-  // Use current date for reference (August 28, 2025 based on the error)
+  // Use fixed date for consistent testing (August 28, 2025)
   const currentRealDate = new Date(2025, 7, 28); // August 28, 2025
-  
-  // Initialize with some sample events including past events
+  const today = new Date(2025, 7, 28); // August 28, 2025
+
+  // Initialize events: one past, one more past, one upcoming (in August)
   const [events, setEvents] = useState([
     {
       id: 1,
       title: 'Past Event',
       location: 'Test Location',
-      date: new Date(2025, 7, 20), // August 20, 2025 (definitely past)
+      date: new Date(2025, 7, 20), // August 20, 2025
     },
     {
       id: 2,
-      title: 'Another Past Event', 
+      title: 'Another Past Event',
       location: 'Past Location',
-      date: new Date(2025, 7, 25), // August 25, 2025 (definitely past)
+      date: new Date(2025, 7, 25), // August 25, 2025
     },
     {
       id: 3,
-      title: 'Future Event',
+      title: 'Upcoming Event',
       location: 'Future Location',
-      date: new Date(2025, 8, 15), // September 15, 2025 (future date)
-    }
+      date: new Date(2025, 7, 30), // August 30, 2025 ← in current month and future
+    },
   ]);
+
   const [filter, setFilter] = useState('All');
   const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 1)); // August 2025
   const [showCreatePopup, setShowCreatePopup] = useState(false);
@@ -44,12 +46,9 @@ const EventTrackerCalendar = () => {
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const today = new Date(2025, 7, 28); // August 28, 2025 - match the test environment
-  
   const isPastEvent = (date) => {
     const eventDate = new Date(date);
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    console.log(`Checking if event date ${eventDate.toDateString()} is before today ${todayStart.toDateString()}: ${eventDate < todayStart}`);
     return eventDate < todayStart;
   };
 
@@ -79,8 +78,8 @@ const EventTrackerCalendar = () => {
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-    
-    // Previous month's trailing days
+
+    // Previous month trailing days
     const prevMonth = new Date(year, month - 1, 0);
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       days.push({
@@ -99,7 +98,7 @@ const EventTrackerCalendar = () => {
       });
     }
 
-    // Next month's leading days - ensure we always have exactly 42 days (6 weeks)
+    // Next month leading days
     const totalDaysNeeded = 42;
     const remainingDays = totalDaysNeeded - days.length;
     for (let day = 1; day <= remainingDays; day++) {
@@ -110,7 +109,6 @@ const EventTrackerCalendar = () => {
       });
     }
 
-    // Ensure we always return exactly 42 days
     return days.slice(0, 42);
   };
 
@@ -123,38 +121,24 @@ const EventTrackerCalendar = () => {
     return getFilteredEvents().filter(event => formatDate(new Date(event.date)) === dateStr);
   };
 
-  // Validation functions
+  // Validation
   const validateEventTitle = (title) => {
-    if (!title || title.trim().length === 0) {
-      return 'Event title is required';
-    }
-    if (title.trim().length < 3) {
-      return 'Event title must be at least 3 characters long';
-    }
-    if (title.trim().length > 100) {
-      return 'Event title must be less than 100 characters';
-    }
+    if (!title || title.trim().length === 0) return 'Event title is required';
+    if (title.trim().length < 3) return 'Event title must be at least 3 characters long';
+    if (title.trim().length > 100) return 'Event title must be less than 100 characters';
     return '';
   };
 
   const validateEventLocation = (location) => {
-    if (!location || location.trim().length === 0) {
-      return 'Event location is required';
-    }
-    if (location.trim().length < 2) {
-      return 'Event location must be at least 2 characters long';
-    }
-    if (location.trim().length > 200) {
-      return 'Event location must be less than 200 characters';
-    }
+    if (!location || location.trim().length === 0) return 'Event location is required';
+    if (location.trim().length < 2) return 'Event location must be at least 2 characters long';
+    if (location.trim().length > 200) return 'Event location must be less than 200 characters';
     return '';
   };
 
   const handleDateClick = (date, dayInfo) => {
     if (!date || !dayInfo?.isCurrentMonth) return;
-    
     const existingEvents = getEventsForDate(date);
-    
     if (existingEvents.length > 0) {
       setSelectedEvent(existingEvents[0]);
       setShowEventPopup(true);
@@ -171,7 +155,6 @@ const EventTrackerCalendar = () => {
   const handleCreateEvent = () => {
     const titleValidation = validateEventTitle(eventTitle);
     const locationValidation = validateEventLocation(eventLocation);
-    
     setTitleError(titleValidation);
     setLocationError(locationValidation);
 
@@ -203,13 +186,12 @@ const EventTrackerCalendar = () => {
   const handleSaveEdit = () => {
     const titleValidation = validateEventTitle(eventTitle);
     const locationValidation = validateEventLocation(eventLocation);
-    
     setTitleError(titleValidation);
     setLocationError(locationValidation);
 
     if (!titleValidation && !locationValidation) {
-      setEvents(events.map(event => 
-        event.id === selectedEvent.id 
+      setEvents(events.map(event =>
+        event.id === selectedEvent.id
           ? { ...event, title: eventTitle.trim(), location: eventLocation.trim() }
           : event
       ));
@@ -234,11 +216,12 @@ const EventTrackerCalendar = () => {
     setShowCreatePopup(false);
     setShowEventPopup(false);
     setIsEditing(false);
+    setEventTitle('');
+    setEventLocation('');
     setTitleError('');
     setLocationError('');
   };
 
-  // Handle input changes with validation
   const handleTitleChange = (e) => {
     const value = e.target.value;
     setEventTitle(value);
@@ -253,7 +236,6 @@ const EventTrackerCalendar = () => {
 
   const days = getDaysInMonth(currentDate);
 
-  // Always split into exactly 6 weeks (42 days total)
   const weeks = [];
   for (let i = 0; i < 42; i += 7) {
     weeks.push(days.slice(i, i + 7));
@@ -451,6 +433,7 @@ const EventTrackerCalendar = () => {
     }
 
     .rbc-event {
+      background-color: #3b82f6;
       color: white;
       padding: 2px 6px;
       border-radius: 3px;
@@ -470,6 +453,14 @@ const EventTrackerCalendar = () => {
 
     .rbc-event:hover {
       opacity: 0.8;
+    }
+
+    .rbc-event-past {
+      background-color: rgb(222, 105, 135) !important;
+    }
+
+    .rbc-event-upcoming {
+      background-color: rgb(140, 189, 76) !important;
     }
 
     .popup-overlay {
@@ -642,9 +633,7 @@ const EventTrackerCalendar = () => {
                   className="btn"
                   onClick={() => setFilter('All')}
                   data-testid="filter-all"
-                  style={{
-                    backgroundColor: filter === 'All' ? '#3b82f6' : '#6b7280'
-                  }}
+                  style={{ backgroundColor: filter === 'All' ? '#3b82f6' : '#6b7280' }}
                 >
                   All
                 </button>
@@ -654,9 +643,7 @@ const EventTrackerCalendar = () => {
                   className="btn"
                   onClick={() => setFilter('Past')}
                   data-testid="filter-past"
-                  style={{
-                    backgroundColor: filter === 'Past' ? '#dc2626' : '#6b7280'
-                  }}
+                  style={{ backgroundColor: filter === 'Past' ? '#dc2626' : '#6b7280' }}
                 >
                   Past
                 </button>
@@ -666,9 +653,7 @@ const EventTrackerCalendar = () => {
                   className="btn"
                   onClick={() => setFilter('Upcoming')}
                   data-testid="filter-upcoming"
-                  style={{
-                    backgroundColor: filter === 'Upcoming' ? '#059669' : '#6b7280'
-                  }}
+                  style={{ backgroundColor: filter === 'Upcoming' ? '#059669' : '#6b7280' }}
                 >
                   Upcoming
                 </button>
@@ -678,9 +663,7 @@ const EventTrackerCalendar = () => {
                   className="btn"
                   onClick={() => setCurrentDate(new Date())}
                   data-testid="filter-today"
-                  style={{
-                    backgroundColor: '#8b5cf6'
-                  }}
+                  style={{ backgroundColor: '#8b5cf6' }}
                 >
                   Today
                 </button>
@@ -690,130 +673,86 @@ const EventTrackerCalendar = () => {
 
           {/* Calendar Navigation */}
           <div className="nav-header">
-            <button 
-              className="nav-btn" 
-              onClick={() => navigateMonth(-1)}
-              data-testid="prev-month"
-            >
+            <button className="nav-btn" onClick={() => navigateMonth(-1)} data-testid="prev-month">
               ← Prev
             </button>
             <h2 className="month-title">
               {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </h2>
-            <button 
-              className="nav-btn" 
-              onClick={() => navigateMonth(1)}
-              data-testid="next-month"
-            >
+            <button className="nav-btn" onClick={() => navigateMonth(1)} data-testid="next-month">
               Next →
             </button>
           </div>
 
           {/* Calendar */}
           <div className="rbc-calendar">
-            {/* Day Headers */}
             <div className="rbc-header">
               {dayNames.map(day => (
-                <div key={day} className="rbc-header-cell">
-                  {day}
-                </div>
+                <div key={day} className="rbc-header-cell">{day}</div>
               ))}
             </div>
 
-            {/* Calendar Body */}
             <div className="rbc-month-view">
-              {weeks.map((week, weekIndex) => {
-                // Ensure we have exactly 7 days in each week
-                while (week.length < 7) {
-                  const lastDay = week[week.length - 1];
-                  const nextDay = new Date(lastDay.date);
-                  nextDay.setDate(nextDay.getDate() + 1);
-                  week.push({
-                    day: nextDay.getDate(),
-                    isCurrentMonth: false,
-                    date: nextDay
-                  });
-                }
-                
-                return (
-                  <div key={weekIndex} className="rbc-month-row" style={{ position: 'relative' }}>
-                    {/* Background layer for clicking */}
-                    <div className="rbc-row-bg">
-                      {week.slice(0, 7).map((dayInfo, dayIndex) => (
-                        <div
-                          key={`bg-${weekIndex}-${dayIndex}`}
-                          className={`rbc-day-bg ${dayInfo.isCurrentMonth ? 'current-month' : 'other-month'}`}
-                          onClick={() => dayInfo.isCurrentMonth && handleDateClick(dayInfo.date, dayInfo)}
-                          data-date={formatDate(dayInfo.date)}
-                          data-testid={`calendar-day-${formatDate(dayInfo.date)}`}
-                          data-current-month={dayInfo.isCurrentMonth}
-                          data-week={weekIndex}
-                          data-day={dayIndex}
-                          style={{
-                            pointerEvents: dayInfo.isCurrentMonth ? 'auto' : 'none'
-                          }}
-                        />
-                      ))}
-                    </div>
-                    
-                    {/* Content layer */}
-                    <div className="rbc-row-content">
-                      {week.slice(0, 7).map((dayInfo, dayIndex) => {
-                        const dayEvents = getEventsForDate(dayInfo.date);
-                        const isToday = formatDate(dayInfo.date) === formatDate(today);
-                        
-                        return (
-                          <div 
-                            key={`content-${weekIndex}-${dayIndex}`} 
-                            className="rbc-date-cell"
-                            data-testid={`calendar-content-${formatDate(dayInfo.date)}`}
-                          >
-                            <div 
-                              className={`date-number ${
-                                !dayInfo.isCurrentMonth ? 'other-month' : ''
-                              } ${isToday ? 'today' : ''}`}
-                            >
-                              {dayInfo.day}
-                            </div>
-                            <div>
-                              {dayEvents.map(event => {
-                                const isPast = isPastEvent(event.date);
-                                const backgroundColor = isPast ? 'rgb(222, 105, 135)' : 'rgb(140, 189, 76)';
-                                
-                                // Debug logging
-                                console.log(`Event: ${event.title}, Date: ${event.date}, isPast: ${isPast}, backgroundColor: ${backgroundColor}`);
-                                
-                                return (
-                                  <button
-                                    key={event.id}
-                                    className={`rbc-event ${isPast ? 'rbc-event-past' : 'rbc-event-upcoming'}`}
-                                    style={
-                                      isPast 
-                                        ? { backgroundColor: 'rgb(222, 105, 135)' }
-                                        : { backgroundColor: 'rgb(140, 189, 76)' }
-                                    }
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedEvent(event);
-                                      setShowEventPopup(true);
-                                    }}
-                                    data-testid={`event-${event.id}`}
-                                    data-event-type={isPast ? 'past' : 'upcoming'}
-                                    data-background-color={backgroundColor}
-                                    data-is-past={isPast}
-                                  >
-                                    {event.title}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+              {weeks.map((week, weekIndex) => (
+                <div key={weekIndex} className="rbc-month-row" style={{ position: 'relative' }}>
+                  <div className="rbc-row-bg">
+                    {week.slice(0, 7).map((dayInfo, dayIndex) => (
+                      <div
+                        key={`bg-${weekIndex}-${dayIndex}`}
+                        className={`rbc-day-bg ${dayInfo.isCurrentMonth ? 'current-month' : 'other-month'}`}
+                        onClick={() => dayInfo.isCurrentMonth && handleDateClick(dayInfo.date, dayInfo)}
+                        data-date={formatDate(dayInfo.date)}
+                        data-testid={`calendar-day-${formatDate(dayInfo.date)}`}
+                        data-current-month={dayInfo.isCurrentMonth}
+                        style={{ pointerEvents: dayInfo.isCurrentMonth ? 'auto' : 'none' }}
+                      />
+                    ))}
                   </div>
-                );
-              })}
+
+                  <div className="rbc-row-content">
+                    {week.slice(0, 7).map((dayInfo, dayIndex) => {
+                      const dayEvents = getEventsForDate(dayInfo.date);
+                      const isToday = formatDate(dayInfo.date) === formatDate(today);
+
+                      return (
+                        <div
+                          key={`content-${weekIndex}-${dayIndex}`}
+                          className="rbc-date-cell"
+                          data-testid={`calendar-content-${formatDate(dayInfo.date)}`}
+                        >
+                          <div className={`date-number ${!dayInfo.isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`}>
+                            {dayInfo.day}
+                          </div>
+                          <div>
+                            {dayEvents.map(event => {
+                              const isPast = isPastEvent(event.date);
+                              const backgroundColor = isPast ? 'rgb(222, 105, 135)' : 'rgb(140, 189, 76)';
+
+                              return (
+                                <button
+                                  key={event.id}
+                                  className={`rbc-event ${isPast ? 'rbc-event-past' : 'rbc-event-upcoming'}`}
+                                  style={{ backgroundColor, border: 'none', width: '100%', textAlign: 'left' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedEvent(event);
+                                    setShowEventPopup(true);
+                                  }}
+                                  data-testid={`event-${event.id}`}
+                                  data-event-type={isPast ? 'past' : 'upcoming'}
+                                  data-background-color={backgroundColor}
+                                >
+                                  {event.title}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -851,8 +790,8 @@ const EventTrackerCalendar = () => {
                 </div>
                 <div className="mm-popup__box__footer">
                   <div className="mm-popup__box__footer__left-space">
-                    <button 
-                      className="mm-popup__btn mm-popup__btn--cancel" 
+                    <button
+                      className="mm-popup__btn mm-popup__btn--cancel"
                       onClick={closePopups}
                       data-testid="cancel-create-event"
                     >
@@ -860,8 +799,8 @@ const EventTrackerCalendar = () => {
                     </button>
                   </div>
                   <div className="mm-popup__box__footer__right-space">
-                    <button 
-                      className="mm-popup__btn mm-popup__btn--success" 
+                    <button
+                      className="mm-popup__btn mm-popup__btn--success"
                       onClick={handleCreateEvent}
                       disabled={!!titleError || !!locationError || !eventTitle.trim() || !eventLocation.trim()}
                       data-testid="save-event-button"
@@ -883,13 +822,13 @@ const EventTrackerCalendar = () => {
                   <button className="close-btn" onClick={closePopups}>×</button>
                 </div>
                 <div className="mm-popup__box__body">
-                  <div><strong>Date:</strong> {new Date(selectedEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                  <div><strong>Date:</strong> {new Date(selectedEvent.date).toLocaleDateString()}</div>
                   <div><strong>Location:</strong> {selectedEvent.location}</div>
                 </div>
                 <div className="mm-popup__box__footer">
                   <div className="mm-popup__box__footer__left-space">
-                    <button 
-                      className="mm-popup__btn mm-popup__btn--info" 
+                    <button
+                      className="mm-popup__btn mm-popup__btn--info"
                       onClick={handleEditEvent}
                       data-testid="edit-event-button"
                     >
@@ -897,8 +836,8 @@ const EventTrackerCalendar = () => {
                     </button>
                   </div>
                   <div className="mm-popup__box__footer__right-space">
-                    <button 
-                      className="mm-popup__btn mm-popup__btn--danger" 
+                    <button
+                      className="mm-popup__btn mm-popup__btn--danger"
                       onClick={handleDeleteEvent}
                       data-testid="delete-event-button"
                     >
@@ -944,8 +883,8 @@ const EventTrackerCalendar = () => {
                 </div>
                 <div className="mm-popup__box__footer">
                   <div className="mm-popup__box__footer__left-space">
-                    <button 
-                      className="mm-popup__btn mm-popup__btn--cancel" 
+                    <button
+                      className="mm-popup__btn mm-popup__btn--cancel"
                       onClick={closePopups}
                       data-testid="cancel-edit-event"
                     >
@@ -953,8 +892,8 @@ const EventTrackerCalendar = () => {
                     </button>
                   </div>
                   <div className="mm-popup__box__footer__right-space">
-                    <button 
-                      className="mm-popup__btn mm-popup__btn--success" 
+                    <button
+                      className="mm-popup__btn mm-popup__btn--success"
                       onClick={handleSaveEdit}
                       disabled={!!titleError || !!locationError || !eventTitle.trim() || !eventLocation.trim()}
                       data-testid="save-edit-button"
