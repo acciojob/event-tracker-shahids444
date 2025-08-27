@@ -96,6 +96,8 @@ const EventTrackerCalendar = () => {
   };
 
   const handleDateClick = (date) => {
+    if (!date) return;
+    
     const existingEvents = getEventsForDate(date);
     
     if (existingEvents.length > 0) {
@@ -161,258 +163,560 @@ const EventTrackerCalendar = () => {
 
   const days = getDaysInMonth(currentDate);
 
+  // Split days into weeks (rows)
+  const weeks = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+
+  const styles = `
+    .calendar-container {
+      min-height: 100vh;
+      background-color: #f9fafb;
+      padding: 16px;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .calendar-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .filter-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      color: white;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .nav-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .nav-btn {
+      padding: 8px 16px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .nav-btn:hover {
+      background-color: #2563eb;
+    }
+
+    .month-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .rbc-calendar {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .rbc-header {
+      display: flex;
+      background-color: #f3f4f6;
+    }
+
+    .rbc-header-cell {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-weight: 600;
+      color: #374151;
+      border-right: 1px solid #e5e7eb;
+    }
+
+    .rbc-header-cell:last-child {
+      border-right: none;
+    }
+
+    .rbc-month-view {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .rbc-month-row {
+      display: flex;
+      min-height: 120px;
+    }
+
+    .rbc-row-bg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+    }
+
+    .rbc-day-bg {
+      flex: 1;
+      border-right: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .rbc-day-bg:last-child {
+      border-right: none;
+    }
+
+    .rbc-day-bg:hover {
+      background-color: #f9fafb;
+    }
+
+    .rbc-row-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      width: 100%;
+      min-height: 120px;
+    }
+
+    .rbc-date-cell {
+      flex: 1;
+      padding: 8px;
+      border-right: 1px solid #e5e7eb;
+      position: relative;
+    }
+
+    .rbc-date-cell:last-child {
+      border-right: none;
+    }
+
+    .date-number {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .date-number.other-month {
+      color: #9ca3af;
+    }
+
+    .date-number.today {
+      color: #2563eb;
+      font-weight: 700;
+    }
+
+    .rbc-event {
+      background-color: #3b82f6;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      margin-bottom: 2px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .rbc-event:hover {
+      opacity: 0.8;
+    }
+
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .mm-popup__box {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      width: 100%;
+      max-width: 400px;
+      margin: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .mm-popup__box__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .mm-popup__box__header h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      color: #6b7280;
+    }
+
+    .mm-popup__box__body {
+      margin-bottom: 20px;
+    }
+
+    .mm-popup__box__body > div {
+      margin-bottom: 8px;
+    }
+
+    .mm-popup__box__body input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+    }
+
+    .mm-popup__box__body input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .mm-popup__box__footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .mm-popup__box__footer__left-space,
+    .mm-popup__box__footer__right-space {
+      display: flex;
+      gap: 8px;
+    }
+
+    .mm-popup__btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mm-popup__btn--info {
+      background-color: #3b82f6;
+      color: white;
+    }
+
+    .mm-popup__btn--info:hover {
+      background-color: #2563eb;
+    }
+
+    .mm-popup__btn--danger {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    .mm-popup__btn--danger:hover {
+      background-color: #dc2626;
+    }
+
+    .mm-popup__btn--success {
+      background-color: #10b981;
+      color: white;
+    }
+
+    .mm-popup__btn--success:hover {
+      background-color: #059669;
+    }
+
+    .mm-popup__btn--cancel {
+      background-color: #6b7280;
+      color: white;
+    }
+
+    .mm-popup__btn--cancel:hover {
+      background-color: #4b5563;
+    }
+  `;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Event Tracker Calendar</h1>
-          <div className="flex gap-2">
-            <button
-              className="btn px-4 py-2 rounded-md text-white font-medium transition-colors"
-              onClick={() => setFilter('All')}
-              style={{
-                backgroundColor: filter === 'All' ? '#3b82f6' : '#6b7280'
-              }}
-            >
-              All
-            </button>
-            <button
-              className="btn px-4 py-2 rounded-md text-white font-medium transition-colors"
-              onClick={() => setFilter('Past')}
-              style={{
-                backgroundColor: filter === 'Past' ? '#dc2626' : '#6b7280'
-              }}
-            >
-              Past
-            </button>
-            <button
-              className="btn px-4 py-2 rounded-md text-white font-medium transition-colors"
-              onClick={() => setFilter('Upcoming')}
-              style={{
-                backgroundColor: filter === 'Upcoming' ? '#059669' : '#6b7280'
-              }}
-            >
-              Upcoming
-            </button>
-          </div>
-        </div>
-
-        {/* Calendar Navigation */}
-        <div className="flex justify-between items-center mb-4">
-          <button
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-            onClick={() => navigateMonth(-1)}
-          >
-            ← Prev
-          </button>
-          <h2 className="text-xl font-semibold text-gray-800">
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </h2>
-          <button
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-            onClick={() => navigateMonth(1)}
-          >
-            Next →
-          </button>
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 bg-gray-100">
-            {dayNames.map(day => (
-              <div key={day} className="p-3 text-center font-semibold text-gray-700 border-r border-gray-200 last:border-r-0">
-                {day}
-              </div>
-            ))}
+    <>
+      <style>{styles}</style>
+      <div className="calendar-container">
+        <div className="calendar-wrapper">
+          {/* Header */}
+          <div className="header">
+            <h1>Event Tracker Calendar</h1>
+            <div className="filter-buttons">
+              <button
+                className="btn"
+                onClick={() => setFilter('All')}
+                style={{
+                  backgroundColor: filter === 'All' ? '#3b82f6' : '#6b7280'
+                }}
+              >
+                All
+              </button>
+              <button
+                className="btn"
+                onClick={() => setFilter('Past')}
+                style={{
+                  backgroundColor: filter === 'Past' ? '#dc2626' : '#6b7280'
+                }}
+              >
+                Past
+              </button>
+              <button
+                className="btn"
+                onClick={() => setFilter('Upcoming')}
+                style={{
+                  backgroundColor: filter === 'Upcoming' ? '#059669' : '#6b7280'
+                }}
+              >
+                Upcoming
+              </button>
+            </div>
           </div>
 
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7">
-            {days.map((dayInfo, index) => {
-              const dayEvents = getEventsForDate(dayInfo.date);
-              const isToday = formatDate(dayInfo.date) === formatDate(today);
-              
-              return (
-                <div
-                  key={index}
-                  className={`min-h-24 p-2 border-r border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    !dayInfo.isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
-                  } ${isToday ? 'bg-blue-50' : ''}`}
-                  onClick={() => dayInfo.isCurrentMonth && handleDateClick(dayInfo.date)}
-                >
-                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : ''}`}>
-                    {dayInfo.day}
-                  </div>
-                  <div className="space-y-1">
-                    {dayEvents.map(event => (
+          {/* Calendar Navigation */}
+          <div className="nav-header">
+            <button className="nav-btn" onClick={() => navigateMonth(-1)}>
+              ← Prev
+            </button>
+            <h2 className="month-title">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h2>
+            <button className="nav-btn" onClick={() => navigateMonth(1)}>
+              Next →
+            </button>
+          </div>
+
+          {/* Calendar */}
+          <div className="rbc-calendar">
+            {/* Day Headers */}
+            <div className="rbc-header">
+              {dayNames.map(day => (
+                <div key={day} className="rbc-header-cell">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Body */}
+            <div className="rbc-month-view">
+              {weeks.map((week, weekIndex) => (
+                <div key={weekIndex} className="rbc-month-row" style={{ position: 'relative' }}>
+                  {/* Background layer for clicking */}
+                  <div className="rbc-row-bg">
+                    {week.map((dayInfo, dayIndex) => (
                       <div
-                        key={event.id}
-                        className="rbc-event text-xs px-2 py-1 rounded text-white cursor-pointer hover:opacity-80 transition-opacity"
-                        style={{
-                          backgroundColor: isPastEvent(event.date) 
-                            ? 'rgb(222, 105, 135)' 
-                            : 'rgb(140, 189, 76)'
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedEvent(event);
-                          setShowEventPopup(true);
-                        }}
-                      >
-                        {event.title}
-                      </div>
+                        key={`${weekIndex}-${dayIndex}`}
+                        className="rbc-day-bg"
+                        onClick={() => dayInfo.isCurrentMonth && handleDateClick(dayInfo.date)}
+                        data-date={formatDate(dayInfo.date)}
+                      />
                     ))}
                   </div>
+                  
+                  {/* Content layer */}
+                  <div className="rbc-row-content">
+                    {week.map((dayInfo, dayIndex) => {
+                      const dayEvents = getEventsForDate(dayInfo.date);
+                      const isToday = formatDate(dayInfo.date) === formatDate(today);
+                      
+                      return (
+                        <div key={`${weekIndex}-${dayIndex}`} className="rbc-date-cell">
+                          <div 
+                            className={`date-number ${
+                              !dayInfo.isCurrentMonth ? 'other-month' : ''
+                            } ${isToday ? 'today' : ''}`}
+                          >
+                            {dayInfo.day}
+                          </div>
+                          <div>
+                            {dayEvents.map(event => (
+                              <div
+                                key={event.id}
+                                className="rbc-event"
+                                style={{
+                                  backgroundColor: isPastEvent(event.date) 
+                                    ? 'rgb(222, 105, 135)' 
+                                    : 'rgb(140, 189, 76)'
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedEvent(event);
+                                  setShowEventPopup(true);
+                                }}
+                              >
+                                {event.title}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
+
+          {/* Create Event Popup */}
+          {showCreatePopup && (
+            <div className="popup-overlay" onClick={closePopups}>
+              <div className="mm-popup__box" onClick={(e) => e.stopPropagation()}>
+                <div className="mm-popup__box__header">
+                  <h3>Create Event</h3>
+                  <button className="close-btn" onClick={closePopups}>×</button>
+                </div>
+                <div className="mm-popup__box__body">
+                  <input
+                    type="text"
+                    placeholder="Event Title"
+                    value={eventTitle}
+                    onChange={(e) => setEventTitle(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Event Location"
+                    value={eventLocation}
+                    onChange={(e) => setEventLocation(e.target.value)}
+                  />
+                </div>
+                <div className="mm-popup__box__footer">
+                  <div className="mm-popup__box__footer__left-space">
+                    <button className="mm-popup__btn mm-popup__btn--cancel" onClick={closePopups}>
+                      Cancel
+                    </button>
+                  </div>
+                  <div className="mm-popup__box__footer__right-space">
+                    <button className="mm-popup__btn mm-popup__btn--success" onClick={handleCreateEvent}>
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Event Details Popup */}
+          {showEventPopup && selectedEvent && (
+            <div className="popup-overlay" onClick={closePopups}>
+              <div className="mm-popup__box" onClick={(e) => e.stopPropagation()}>
+                <div className="mm-popup__box__header">
+                  <h3>{selectedEvent.title}</h3>
+                  <button className="close-btn" onClick={closePopups}>×</button>
+                </div>
+                <div className="mm-popup__box__body">
+                  <div><strong>Date:</strong> {new Date(selectedEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                  <div><strong>Location:</strong> {selectedEvent.location}</div>
+                </div>
+                <div className="mm-popup__box__footer">
+                  <div className="mm-popup__box__footer__left-space">
+                    <button className="mm-popup__btn mm-popup__btn--info" onClick={handleEditEvent}>
+                      Edit
+                    </button>
+                  </div>
+                  <div className="mm-popup__box__footer__right-space">
+                    <button className="mm-popup__btn mm-popup__btn--danger" onClick={handleDeleteEvent}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Event Popup */}
+          {isEditing && (
+            <div className="popup-overlay" onClick={closePopups}>
+              <div className="mm-popup__box" onClick={(e) => e.stopPropagation()}>
+                <div className="mm-popup__box__header">
+                  <h3>Edit Event</h3>
+                  <button className="close-btn" onClick={closePopups}>×</button>
+                </div>
+                <div className="mm-popup__box__body">
+                  <input
+                    type="text"
+                    placeholder="Event Title"
+                    value={eventTitle}
+                    onChange={(e) => setEventTitle(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Event Location"
+                    value={eventLocation}
+                    onChange={(e) => setEventLocation(e.target.value)}
+                  />
+                </div>
+                <div className="mm-popup__box__footer">
+                  <div className="mm-popup__box__footer__left-space">
+                    <button className="mm-popup__btn mm-popup__btn--cancel" onClick={closePopups}>
+                      Cancel
+                    </button>
+                  </div>
+                  <div className="mm-popup__box__footer__right-space">
+                    <button className="mm-popup__btn mm-popup__btn--success" onClick={handleSaveEdit}>
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-
-        {/* Create Event Popup */}
-        {showCreatePopup && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="mm-popup__box bg-white rounded-lg p-6 w-full max-w-md mx-4">
-              <div className="mm-popup__box__header flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Create Event</h3>
-                <button
-                  onClick={closePopups}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="mm-popup__box__body space-y-4 mb-6">
-                <input
-                  type="text"
-                  placeholder="Event Title"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={eventTitle}
-                  onChange={(e) => setEventTitle(e.target.value)}
-                />
-                <input
-                  type="text"
-                  placeholder="Event Location"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={eventLocation}
-                  onChange={(e) => setEventLocation(e.target.value)}
-                />
-              </div>
-              <div className="mm-popup__box__footer flex justify-between">
-                <div className="mm-popup__box__footer__left-space">
-                  <button 
-                    className="mm-popup__btn px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-                    onClick={closePopups}
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <div className="mm-popup__box__footer__right-space">
-                  <button 
-                    className="mm-popup__btn px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-                    onClick={handleCreateEvent}
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Event Details Popup */}
-        {showEventPopup && selectedEvent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="mm-popup__box bg-white rounded-lg p-6 w-full max-w-md mx-4">
-              <div className="mm-popup__box__header flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Event 3</h3>
-                <button
-                  onClick={closePopups}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="mm-popup__box__body space-y-2 mb-6">
-                <div><span className="font-medium">Date:</span> {new Date(selectedEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                <div><span className="font-medium">Location:</span> {selectedEvent.location}</div>
-              </div>
-              <div className="mm-popup__box__footer flex justify-between">
-                <div className="mm-popup__box__footer__left-space">
-                  <button 
-                    className="mm-popup__btn mm-popup__btn--info px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                    onClick={handleEditEvent}
-                  >
-                    Edit
-                  </button>
-                </div>
-                <div className="mm-popup__box__footer__right-space">
-                  <button 
-                    className="mm-popup__btn mm-popup__btn--danger px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                    onClick={handleDeleteEvent}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit Event Popup */}
-        {isEditing && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="mm-popup__box bg-white rounded-lg p-6 w-full max-w-md mx-4">
-              <div className="mm-popup__box__header flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Edit Event</h3>
-                <button
-                  onClick={closePopups}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="mm-popup__box__body space-y-4 mb-6">
-                <input
-                  type="text"
-                  placeholder="Event Title"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={eventTitle}
-                  onChange={(e) => setEventTitle(e.target.value)}
-                />
-                <input
-                  type="text"
-                  placeholder="Event Location"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={eventLocation}
-                  onChange={(e) => setEventLocation(e.target.value)}
-                />
-              </div>
-              <div className="mm-popup__box__footer flex justify-between">
-                <div className="mm-popup__box__footer__left-space">
-                  <button 
-                    className="mm-popup__btn px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-                    onClick={closePopups}
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <div className="mm-popup__box__footer__right-space">
-                  <button 
-                    className="mm-popup__btn px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-                    onClick={handleSaveEdit}
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-    </div>
+    </>
   );
 };
 
