@@ -451,7 +451,6 @@ const EventTrackerCalendar = () => {
     }
 
     .rbc-event {
-      background-color: #3b82f6;
       color: white;
       padding: 2px 6px;
       border-radius: 3px;
@@ -471,14 +470,6 @@ const EventTrackerCalendar = () => {
 
     .rbc-event:hover {
       opacity: 0.8;
-    }
-
-    .rbc-event-past {
-      background-color: rgb(222, 105, 135) !important;
-    }
-
-    .rbc-event-upcoming {
-      background-color: rgb(140, 189, 76) !important;
     }
 
     .popup-overlay {
@@ -796,12 +787,11 @@ const EventTrackerCalendar = () => {
                                   <button
                                     key={event.id}
                                     className={`rbc-event ${isPast ? 'rbc-event-past' : 'rbc-event-upcoming'}`}
-                                    style={{
-                                      backgroundColor: backgroundColor,
-                                      border: 'none',
-                                      width: '100%',
-                                      textAlign: 'left'
-                                    }}
+                                    style={
+                                      isPast 
+                                        ? { backgroundColor: 'rgb(222, 105, 135)' }
+                                        : { backgroundColor: 'rgb(140, 189, 76)' }
+                                    }
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedEvent(event);
