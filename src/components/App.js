@@ -439,6 +439,10 @@ const EventTrackerCalendar = () => {
       text-overflow: ellipsis;
       overflow: hidden;
       white-space: nowrap;
+      border: none;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
     }
 
     .rbc-event:hover {
@@ -750,13 +754,16 @@ const EventTrackerCalendar = () => {
                             </div>
                             <div>
                               {dayEvents.map(event => (
-                                <div
+                                <button
                                   key={event.id}
                                   className="rbc-event"
                                   style={{
                                     backgroundColor: isPastEvent(event.date) 
                                       ? 'rgb(222, 105, 135)' 
-                                      : 'rgb(140, 189, 76)'
+                                      : 'rgb(140, 189, 76)',
+                                    border: 'none',
+                                    width: '100%',
+                                    textAlign: 'left'
                                   }}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -764,9 +771,10 @@ const EventTrackerCalendar = () => {
                                     setShowEventPopup(true);
                                   }}
                                   data-testid={`event-${event.id}`}
+                                  data-event-type={isPastEvent(event.date) ? 'past' : 'upcoming'}
                                 >
                                   {event.title}
-                                </div>
+                                </button>
                               ))}
                             </div>
                           </div>
