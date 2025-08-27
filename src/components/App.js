@@ -11,6 +11,8 @@ const EventTrackerCalendar = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [eventTitle, setEventTitle] = useState('');
   const [eventLocation, setEventLocation] = useState('');
+  const [titleError, setTitleError] = useState('');
+  const [locationError, setLocationError] = useState('');
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -95,8 +97,35 @@ const EventTrackerCalendar = () => {
     return getFilteredEvents().filter(event => formatDate(new Date(event.date)) === dateStr);
   };
 
-  const handleDateClick = (date) => {
-    if (!date) return;
+  // Validation functions
+  const validateEventTitle = (title) => {
+    if (!title || title.trim().length === 0) {
+      return 'Event title is required';
+    }
+    if (title.trim().length < 3) {
+      return 'Event title must be at least 3 characters long';
+    }
+    if (title.trim().length > 100) {
+      return 'Event title must be less than 100 characters';
+    }
+    return '';
+  };
+
+  const validateEventLocation = (location) => {
+    if (!location || location.trim().length === 0) {
+      return 'Event location is required';
+    }
+    if (location.trim().length < 2) {
+      return 'Event location must be at least 2 characters long';
+    }
+    if (location.trim().length > 200) {
+      return 'Event location must be less than 200 characters';
+    }
+    return '';
+  };
+
+  const handleDateClick = (date, dayInfo) => {
+    if (!date || !dayInfo?.isCurrentMonth) return;
     
     const existingEvents = getEventsForDate(date);
     
@@ -107,22 +136,32 @@ const EventTrackerCalendar = () => {
       setSelectedDate(date);
       setEventTitle('');
       setEventLocation('');
+      setTitleError('');
+      setLocationError('');
       setShowCreatePopup(true);
     }
   };
 
   const handleCreateEvent = () => {
-    if (eventTitle.trim() && eventLocation.trim()) {
+    const titleValidation = validateEventTitle(eventTitle);
+    const locationValidation = validateEventLocation(eventLocation);
+    
+    setTitleError(titleValidation);
+    setLocationError(locationValidation);
+
+    if (!titleValidation && !locationValidation) {
       const newEvent = {
         id: Date.now(),
-        title: eventTitle,
-        location: eventLocation,
+        title: eventTitle.trim(),
+        location: eventLocation.trim(),
         date: selectedDate,
       };
       setEvents([...events, newEvent]);
       setShowCreatePopup(false);
       setEventTitle('');
       setEventLocation('');
+      setTitleError('');
+      setLocationError('');
     }
   };
 
@@ -130,19 +169,29 @@ const EventTrackerCalendar = () => {
     setIsEditing(true);
     setEventTitle(selectedEvent.title);
     setEventLocation(selectedEvent.location);
+    setTitleError('');
+    setLocationError('');
     setShowEventPopup(false);
   };
 
   const handleSaveEdit = () => {
-    if (eventTitle.trim() && eventLocation.trim()) {
+    const titleValidation = validateEventTitle(eventTitle);
+    const locationValidation = validateEventLocation(eventLocation);
+    
+    setTitleError(titleValidation);
+    setLocationError(locationValidation);
+
+    if (!titleValidation && !locationValidation) {
       setEvents(events.map(event => 
         event.id === selectedEvent.id 
-          ? { ...event, title: eventTitle, location: eventLocation }
+          ? { ...event, title: eventTitle.trim(), location: eventLocation.trim() }
           : event
       ));
       setIsEditing(false);
       setEventTitle('');
       setEventLocation('');
+      setTitleError('');
+      setLocationError('');
     }
   };
 
@@ -159,6 +208,21 @@ const EventTrackerCalendar = () => {
     setShowCreatePopup(false);
     setShowEventPopup(false);
     setIsEditing(false);
+    setTitleError('');
+    setLocationError('');
+  };
+
+  // Handle input changes with validation
+  const handleTitleChange = (e) => {
+    const value = e.target.value;
+    setEventTitle(value);
+    setTitleError(validateEventTitle(value));
+  };
+
+  const handleLocationChange = (e) => {
+    const value = e.target.value;
+    setEventLocation(value);
+    setLocationError(validateEventLocation(value));
   };
 
   const days = getDaysInMonth(currentDate);
@@ -276,37 +340,11 @@ const EventTrackerCalendar = () => {
     .rbc-month-row {
       display: flex;
       min-height: 120px;
-    }
-
-    .rbc-row-bg {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      display: flex;
-    }
-
-    .rbc-day-bg {
-      flex: 1;
-      border-right: 1px solid #e5e7eb;
       border-bottom: 1px solid #e5e7eb;
-      cursor: pointer;
-      position: relative;
     }
 
-    .rbc-day-bg:last-child {
-      border-right: none;
-    }
-
-    .rbc-day-bg:hover {
-      background-color: #f9fafb;
-    }
-
-    .rbc-row-content {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      width: 100%;
-      min-height: 120px;
+    .rbc-month-row:last-child {
+      border-bottom: none;
     }
 
     .rbc-date-cell {
@@ -314,10 +352,26 @@ const EventTrackerCalendar = () => {
       padding: 8px;
       border-right: 1px solid #e5e7eb;
       position: relative;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      min-height: 120px;
     }
 
     .rbc-date-cell:last-child {
       border-right: none;
+    }
+
+    .rbc-date-cell:hover {
+      background-color: #f9fafb;
+    }
+
+    .rbc-date-cell.clickable {
+      cursor: pointer;
+    }
+
+    .rbc-date-cell.non-current-month {
+      background-color: #f8fafc;
+      cursor: not-allowed;
     }
 
     .date-number {
@@ -344,6 +398,10 @@ const EventTrackerCalendar = () => {
       margin-bottom: 2px;
       cursor: pointer;
       transition: opacity 0.2s;
+      display: block;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
     }
 
     .rbc-event:hover {
@@ -413,20 +471,33 @@ const EventTrackerCalendar = () => {
       margin-bottom: 8px;
     }
 
+    .input-group {
+      margin-bottom: 16px;
+    }
+
     .mm-popup__box__body input {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       font-size: 14px;
-      margin-bottom: 12px;
       box-sizing: border-box;
+    }
+
+    .mm-popup__box__body input.error {
+      border-color: #ef4444;
     }
 
     .mm-popup__box__body input:focus {
       outline: none;
       border-color: #3b82f6;
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .error-message {
+      color: #ef4444;
+      font-size: 12px;
+      margin-top: 4px;
     }
 
     .mm-popup__box__footer {
@@ -451,12 +522,17 @@ const EventTrackerCalendar = () => {
       transition: all 0.2s;
     }
 
+    .mm-popup__btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .mm-popup__btn--info {
       background-color: #3b82f6;
       color: white;
     }
 
-    .mm-popup__btn--info:hover {
+    .mm-popup__btn--info:hover:not(:disabled) {
       background-color: #2563eb;
     }
 
@@ -465,7 +541,7 @@ const EventTrackerCalendar = () => {
       color: white;
     }
 
-    .mm-popup__btn--danger:hover {
+    .mm-popup__btn--danger:hover:not(:disabled) {
       background-color: #dc2626;
     }
 
@@ -474,7 +550,7 @@ const EventTrackerCalendar = () => {
       color: white;
     }
 
-    .mm-popup__btn--success:hover {
+    .mm-popup__btn--success:hover:not(:disabled) {
       background-color: #059669;
     }
 
@@ -554,58 +630,50 @@ const EventTrackerCalendar = () => {
             {/* Calendar Body */}
             <div className="rbc-month-view">
               {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="rbc-month-row" style={{ position: 'relative' }}>
-                  {/* Background layer for clicking */}
-                  <div className="rbc-row-bg">
-                    {week.map((dayInfo, dayIndex) => (
+                <div key={weekIndex} className="rbc-month-row">
+                  {week.map((dayInfo, dayIndex) => {
+                    const dayEvents = getEventsForDate(dayInfo.date);
+                    const isToday = formatDate(dayInfo.date) === formatDate(today);
+                    
+                    return (
                       <div
                         key={`${weekIndex}-${dayIndex}`}
-                        className="rbc-day-bg"
-                        onClick={() => dayInfo.isCurrentMonth && handleDateClick(dayInfo.date)}
+                        className={`rbc-date-cell ${
+                          dayInfo.isCurrentMonth ? 'clickable' : 'non-current-month'
+                        }`}
                         data-date={formatDate(dayInfo.date)}
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* Content layer */}
-                  <div className="rbc-row-content">
-                    {week.map((dayInfo, dayIndex) => {
-                      const dayEvents = getEventsForDate(dayInfo.date);
-                      const isToday = formatDate(dayInfo.date) === formatDate(today);
-                      
-                      return (
-                        <div key={`${weekIndex}-${dayIndex}`} className="rbc-date-cell">
-                          <div 
-                            className={`date-number ${
-                              !dayInfo.isCurrentMonth ? 'other-month' : ''
-                            } ${isToday ? 'today' : ''}`}
-                          >
-                            {dayInfo.day}
-                          </div>
-                          <div>
-                            {dayEvents.map(event => (
-                              <div
-                                key={event.id}
-                                className="rbc-event"
-                                style={{
-                                  backgroundColor: isPastEvent(event.date) 
-                                    ? 'rgb(222, 105, 135)' 
-                                    : 'rgb(140, 189, 76)'
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedEvent(event);
-                                  setShowEventPopup(true);
-                                }}
-                              >
-                                {event.title}
-                              </div>
-                            ))}
-                          </div>
+                        onClick={() => handleDateClick(dayInfo.date, dayInfo)}
+                      >
+                        <div 
+                          className={`date-number ${
+                            !dayInfo.isCurrentMonth ? 'other-month' : ''
+                          } ${isToday ? 'today' : ''}`}
+                        >
+                          {dayInfo.day}
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div>
+                          {dayEvents.map(event => (
+                            <div
+                              key={event.id}
+                              className="rbc-event"
+                              style={{
+                                backgroundColor: isPastEvent(event.date) 
+                                  ? 'rgb(222, 105, 135)' 
+                                  : 'rgb(140, 189, 76)'
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEvent(event);
+                                setShowEventPopup(true);
+                              }}
+                            >
+                              {event.title}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -620,18 +688,28 @@ const EventTrackerCalendar = () => {
                   <button className="close-btn" onClick={closePopups}>×</button>
                 </div>
                 <div className="mm-popup__box__body">
-                  <input
-                    type="text"
-                    placeholder="Event Title"
-                    value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Event Location"
-                    value={eventLocation}
-                    onChange={(e) => setEventLocation(e.target.value)}
-                  />
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      placeholder="Event Title"
+                      value={eventTitle}
+                      onChange={handleTitleChange}
+                      className={titleError ? 'error' : ''}
+                      data-testid="event-title-input"
+                    />
+                    {titleError && <div className="error-message">{titleError}</div>}
+                  </div>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      placeholder="Event Location"
+                      value={eventLocation}
+                      onChange={handleLocationChange}
+                      className={locationError ? 'error' : ''}
+                      data-testid="event-location-input"
+                    />
+                    {locationError && <div className="error-message">{locationError}</div>}
+                  </div>
                 </div>
                 <div className="mm-popup__box__footer">
                   <div className="mm-popup__box__footer__left-space">
@@ -640,7 +718,12 @@ const EventTrackerCalendar = () => {
                     </button>
                   </div>
                   <div className="mm-popup__box__footer__right-space">
-                    <button className="mm-popup__btn mm-popup__btn--success" onClick={handleCreateEvent}>
+                    <button 
+                      className="mm-popup__btn mm-popup__btn--success" 
+                      onClick={handleCreateEvent}
+                      disabled={!!titleError || !!locationError || !eventTitle.trim() || !eventLocation.trim()}
+                      data-testid="save-event-button"
+                    >
                       Save
                     </button>
                   </div>
@@ -686,18 +769,28 @@ const EventTrackerCalendar = () => {
                   <button className="close-btn" onClick={closePopups}>×</button>
                 </div>
                 <div className="mm-popup__box__body">
-                  <input
-                    type="text"
-                    placeholder="Event Title"
-                    value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Event Location"
-                    value={eventLocation}
-                    onChange={(e) => setEventLocation(e.target.value)}
-                  />
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      placeholder="Event Title"
+                      value={eventTitle}
+                      onChange={handleTitleChange}
+                      className={titleError ? 'error' : ''}
+                      data-testid="edit-event-title-input"
+                    />
+                    {titleError && <div className="error-message">{titleError}</div>}
+                  </div>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      placeholder="Event Location"
+                      value={eventLocation}
+                      onChange={handleLocationChange}
+                      className={locationError ? 'error' : ''}
+                      data-testid="edit-event-location-input"
+                    />
+                    {locationError && <div className="error-message">{locationError}</div>}
+                  </div>
                 </div>
                 <div className="mm-popup__box__footer">
                   <div className="mm-popup__box__footer__left-space">
@@ -706,7 +799,12 @@ const EventTrackerCalendar = () => {
                     </button>
                   </div>
                   <div className="mm-popup__box__footer__right-space">
-                    <button className="mm-popup__btn mm-popup__btn--success" onClick={handleSaveEdit}>
+                    <button 
+                      className="mm-popup__btn mm-popup__btn--success" 
+                      onClick={handleSaveEdit}
+                      disabled={!!titleError || !!locationError || !eventTitle.trim() || !eventLocation.trim()}
+                      data-testid="save-edit-button"
+                    >
                       Save
                     </button>
                   </div>
