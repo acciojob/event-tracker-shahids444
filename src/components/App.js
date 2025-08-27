@@ -340,50 +340,11 @@ const EventTrackerCalendar = () => {
     .rbc-month-row {
       display: flex;
       min-height: 120px;
-    }
-
-    .rbc-row-bg {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      display: flex;
-    }
-
-    .rbc-day-bg {
-      flex: 1;
-      border-right: 1px solid #e5e7eb;
       border-bottom: 1px solid #e5e7eb;
-      cursor: pointer;
-      position: relative;
-      min-height: 120px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
     }
 
-    .rbc-day-bg:last-child {
-      border-right: none;
-    }
-
-    .rbc-day-bg:hover {
-      background-color: #f9fafb;
-    }
-
-    .rbc-day-bg.current-month {
-      cursor: pointer;
-    }
-
-    .rbc-day-bg.other-month {
-      cursor: default;
-      background-color: #f8fafc;
-    }
-
-    .rbc-row-content {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      width: 100%;
-      min-height: 120px;
+    .rbc-month-row:last-child {
+      border-bottom: none;
     }
 
     .rbc-date-cell {
@@ -391,10 +352,26 @@ const EventTrackerCalendar = () => {
       padding: 8px;
       border-right: 1px solid #e5e7eb;
       position: relative;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      min-height: 120px;
     }
 
     .rbc-date-cell:last-child {
       border-right: none;
+    }
+
+    .rbc-date-cell:hover {
+      background-color: #f9fafb;
+    }
+
+    .rbc-date-cell.clickable {
+      cursor: pointer;
+    }
+
+    .rbc-date-cell.non-current-month {
+      background-color: #f8fafc;
+      cursor: not-allowed;
     }
 
     .date-number {
@@ -653,68 +630,50 @@ const EventTrackerCalendar = () => {
             {/* Calendar Body */}
             <div className="rbc-month-view">
               {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="rbc-month-row" style={{ position: 'relative' }}>
-                  {/* Background layer for clicking */}
-                  <div className="rbc-row-bg">
-                    {week.map((dayInfo, dayIndex) => (
+                <div key={weekIndex} className="rbc-month-row">
+                  {week.map((dayInfo, dayIndex) => {
+                    const dayEvents = getEventsForDate(dayInfo.date);
+                    const isToday = formatDate(dayInfo.date) === formatDate(today);
+                    
+                    return (
                       <div
-                        key={`bg-${weekIndex}-${dayIndex}`}
-                        className={`rbc-day-bg ${dayInfo.isCurrentMonth ? 'current-month' : 'other-month'}`}
-                        onClick={() => dayInfo.isCurrentMonth && handleDateClick(dayInfo.date, dayInfo)}
+                        key={`${weekIndex}-${dayIndex}`}
+                        className={`rbc-date-cell ${
+                          dayInfo.isCurrentMonth ? 'clickable' : 'non-current-month'
+                        }`}
                         data-date={formatDate(dayInfo.date)}
-                        data-testid={`calendar-day-${formatDate(dayInfo.date)}`}
-                        data-current-month={dayInfo.isCurrentMonth}
-                        style={{
-                          pointerEvents: dayInfo.isCurrentMonth ? 'auto' : 'none'
-                        }}
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* Content layer */}
-                  <div className="rbc-row-content">
-                    {week.map((dayInfo, dayIndex) => {
-                      const dayEvents = getEventsForDate(dayInfo.date);
-                      const isToday = formatDate(dayInfo.date) === formatDate(today);
-                      
-                      return (
+                        onClick={() => handleDateClick(dayInfo.date, dayInfo)}
+                      >
                         <div 
-                          key={`content-${weekIndex}-${dayIndex}`} 
-                          className="rbc-date-cell"
-                          data-testid={`calendar-content-${formatDate(dayInfo.date)}`}
+                          className={`date-number ${
+                            !dayInfo.isCurrentMonth ? 'other-month' : ''
+                          } ${isToday ? 'today' : ''}`}
                         >
-                          <div 
-                            className={`date-number ${
-                              !dayInfo.isCurrentMonth ? 'other-month' : ''
-                            } ${isToday ? 'today' : ''}`}
-                          >
-                            {dayInfo.day}
-                          </div>
-                          <div>
-                            {dayEvents.map(event => (
-                              <div
-                                key={event.id}
-                                className="rbc-event"
-                                style={{
-                                  backgroundColor: isPastEvent(event.date) 
-                                    ? 'rgb(222, 105, 135)' 
-                                    : 'rgb(140, 189, 76)'
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedEvent(event);
-                                  setShowEventPopup(true);
-                                }}
-                                data-testid={`event-${event.id}`}
-                              >
-                                {event.title}
-                              </div>
-                            ))}
-                          </div>
+                          {dayInfo.day}
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div>
+                          {dayEvents.map(event => (
+                            <div
+                              key={event.id}
+                              className="rbc-event"
+                              style={{
+                                backgroundColor: isPastEvent(event.date) 
+                                  ? 'rgb(222, 105, 135)' 
+                                  : 'rgb(140, 189, 76)'
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEvent(event);
+                                setShowEventPopup(true);
+                              }}
+                            >
+                              {event.title}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
