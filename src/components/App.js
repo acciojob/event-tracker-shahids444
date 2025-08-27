@@ -1,277 +1,123 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
-// Date utility functions to replace moment.js
-const dateUtils = {
-  format: (date, format) => {
-    const d = new Date(date);
-    const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                   'July', 'August', 'September', 'October', 'November', 'December'];
-    
-    if (format === 'MMMM YYYY') {
-      return `${months[d.getMonth()]} ${d.getFullYear()}`;
-    }
-    if (format === 'MMMM D, YYYY') {
-      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-    }
-    if (format === 'YYYY-MM-DD') {
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-    if (format === 'D') {
-      return d.getDate().toString();
-    }
-    return d.toString();
-  },
-  
-  startOfMonth: (date) => {
-    const d = new Date(date);
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-  },
-  
-  endOfMonth: (date) => {
-    const d = new Date(date);
-    return new Date(d.getFullYear(), d.getMonth() + 1, 0);
-  },
-  
-  startOfWeek: (date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
-  },
-  
-  endOfWeek: (date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + (6 - day));
-  },
-  
-  isSameMonth: (date1, date2) => {
-    const d1 = new Date(date1);
-    const d2 = new Date(date2);
-    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
-  },
-  
-  isSameDay: (date1, date2) => {
-    return dateUtils.format(date1, 'YYYY-MM-DD') === dateUtils.format(date2, 'YYYY-MM-DD');
-  },
-  
-  isBeforeDay: (date1, date2) => {
-    const d1 = new Date(dateUtils.format(date1, 'YYYY-MM-DD'));
-    const d2 = new Date(dateUtils.format(date2, 'YYYY-MM-DD'));
-    return d1 < d2;
-  },
-  
-  isSameOrAfterDay: (date1, date2) => {
-    const d1 = new Date(dateUtils.format(date1, 'YYYY-MM-DD'));
-    const d2 = new Date(dateUtils.format(date2, 'YYYY-MM-DD'));
-    return d1 >= d2;
-  },
-  
-  addDays: (date, days) => {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-  }
-};
-
-// Mock react-big-calendar components with proper structure
-const Calendar = ({ localizer, events, startAccessor, endAccessor, titleAccessor, onSelectSlot, onSelectEvent, eventPropGetter, views, defaultView, style }) => {
-  const today = new Date();
-  const [currentDate] = useState(today);
-  const startOfMonth = dateUtils.startOfMonth(currentDate);
-  const endOfMonth = dateUtils.endOfMonth(currentDate);
-  const startOfCalendar = dateUtils.startOfWeek(startOfMonth);
-  const endOfCalendar = dateUtils.endOfWeek(endOfMonth);
-  
-  // Generate all days for the calendar view (42 days = 6 weeks)
-  const calendarDays = [];
-  let currentDay = new Date(startOfCalendar);
-  
-  // Generate 6 weeks of days (42 days total)
-  for (let i = 0; i < 42; i++) {
-    calendarDays.push(new Date(currentDay));
-    currentDay = dateUtils.addDays(currentDay, 1);
-  }
-
-  const weeks = [];
-  for (let i = 0; i < calendarDays.length; i += 7) {
-    weeks.push(calendarDays.slice(i, i + 7));
-  }
-
-  return (
-    <div style={style} className="rbc-calendar">
-      <div className="rbc-toolbar">
-        <span className="rbc-toolbar-label">{dateUtils.format(currentDate, 'MMMM YYYY')}</span>
-      </div>
-      <div className="rbc-month-view">
-        <div className="rbc-month-header">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="rbc-header" style={{ padding: '8px', backgroundColor: '#f8f9fa', border: '1px solid #ddd', fontWeight: 'bold', textAlign: 'center' }}>{day}</div>
-          ))}
-        </div>
-        <div className="rbc-month-body">
-          {weeks.map((week, weekIndex) => (
-            <div key={weekIndex} className="rbc-month-row" style={{ display: 'flex', position: 'relative', minHeight: '120px' }}>
-              <div className="rbc-row-bg" style={{ display: 'flex', width: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-                {week.map((day, dayIndex) => (
-                  <div 
-                    key={dayIndex}
-                    className="rbc-day-bg"
-                    data-testid={`day-${dateUtils.format(day, 'YYYY-MM-DD')}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('Day clicked:', day);
-                      onSelectSlot({ start: day, end: day });
-                    }}
-                    style={{ 
-                      flex: 1,
-                      cursor: 'pointer',
-                      border: '1px solid #ddd',
-                      backgroundColor: dateUtils.isSameMonth(day, currentDate) ? 'white' : '#f8f9fa',
-                      opacity: dateUtils.isSameMonth(day, currentDate) ? 1 : 0.7
-                    }}
-                  />
-                ))}
-              </div>
-              <div className="rbc-row-content" style={{ display: 'flex', width: '100%', position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
-                {week.map((day, dayIndex) => {
-                  const dayEvents = events.filter(event => 
-                    dateUtils.isSameDay(event.start, day)
-                  );
-                  
-                  return (
-                    <div 
-                      key={dayIndex}
-                      className="rbc-date-cell"
-                      style={{ 
-                        flex: 1,
-                        padding: '4px',
-                        border: '1px solid transparent',
-                        backgroundColor: 'transparent',
-                        pointerEvents: 'none'
-                      }}
-                    >
-                      <span 
-                        className="rbc-date-cell-value" 
-                        style={{ 
-                          fontWeight: dateUtils.isSameDay(day, today) ? 'bold' : 'normal',
-                          color: dateUtils.isSameMonth(day, currentDate) ? '#333' : '#999',
-                          display: 'block',
-                          marginBottom: '4px'
-                        }}
-                      >
-                        {dateUtils.format(day, 'D')}
-                      </span>
-                      {dayEvents.map((event, idx) => {
-                        const eventStyle = eventPropGetter ? eventPropGetter(event) : {};
-                        return (
-                          <div
-                            key={idx}
-                            className="rbc-event"
-                            style={{
-                              backgroundColor: eventStyle.style?.backgroundColor || '#3174ad',
-                              color: 'white',
-                              padding: '2px 4px',
-                              margin: '1px 0',
-                              borderRadius: '3px',
-                              fontSize: '11px',
-                              cursor: 'pointer',
-                              wordBreak: 'break-word',
-                              pointerEvents: 'all'
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectEvent(event);
-                            }}
-                          >
-                            {event[titleAccessor]}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Mock Popup component
-const Popup = ({ open, closeOnDocumentClick, onClose, children }) => {
-  if (!open) return null;
-  
-  return (
-    <div 
-      className="mm-popup__overlay"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
-      }}
-      onClick={closeOnDocumentClick ? onClose : undefined}
-    >
-      <div 
-        className="mm-popup__box"
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '4px',
-          padding: '20px',
-          minWidth: '300px',
-          maxWidth: '90%',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  );
-};
-
-const EventTracker = () => {
+const EventTrackerCalendar = () => {
   const [events, setEvents] = useState([]);
+  const [filter, setFilter] = useState('All');
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [showEventPopup, setShowEventPopup] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [eventTitle, setEventTitle] = useState('');
   const [eventLocation, setEventLocation] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [isEditing, setIsEditing] = useState(false);
 
-  const handleSelectSlot = useCallback(({ start }) => {
-    setSelectedDate(start);
-    setEventTitle('');
-    setEventLocation('');
-    setShowCreatePopup(true);
-  }, []);
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
 
-  const handleSelectEvent = useCallback((event) => {
-    setSelectedEvent(event);
-    setShowEventPopup(true);
-  }, []);
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const today = new Date();
+  
+  const isPastEvent = (date) => {
+    const eventDate = new Date(date);
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return eventDate < todayStart;
+  };
+
+  const isUpcomingEvent = (date) => {
+    const eventDate = new Date(date);
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return eventDate >= todayStart;
+  };
+
+  const getFilteredEvents = () => {
+    switch (filter) {
+      case 'Past':
+        return events.filter(event => isPastEvent(event.date));
+      case 'Upcoming':
+        return events.filter(event => isUpcomingEvent(event.date));
+      default:
+        return events;
+    }
+  };
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
+    
+    // Previous month's trailing days
+    const prevMonth = new Date(year, month - 1, 0);
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+      days.push({
+        day: prevMonth.getDate() - i,
+        isCurrentMonth: false,
+        date: new Date(year, month - 1, prevMonth.getDate() - i)
+      });
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push({
+        day,
+        isCurrentMonth: true,
+        date: new Date(year, month, day)
+      });
+    }
+
+    // Next month's leading days
+    const remainingDays = 42 - days.length; // 6 rows × 7 days
+    for (let day = 1; day <= remainingDays; day++) {
+      days.push({
+        day,
+        isCurrentMonth: false,
+        date: new Date(year, month + 1, day)
+      });
+    }
+
+    return days;
+  };
+
+  const formatDate = (date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
+  const getEventsForDate = (date) => {
+    const dateStr = formatDate(date);
+    return getFilteredEvents().filter(event => formatDate(new Date(event.date)) === dateStr);
+  };
+
+  const handleDateClick = (date) => {
+    const existingEvents = getEventsForDate(date);
+    
+    if (existingEvents.length > 0) {
+      setSelectedEvent(existingEvents[0]);
+      setShowEventPopup(true);
+    } else {
+      setSelectedDate(date);
+      setEventTitle('');
+      setEventLocation('');
+      setShowCreatePopup(true);
+    }
+  };
 
   const handleCreateEvent = () => {
-    if (eventTitle.trim()) {
+    if (eventTitle.trim() && eventLocation.trim()) {
       const newEvent = {
         id: Date.now(),
         title: eventTitle,
         location: eventLocation,
-        start: selectedDate,
-        end: selectedDate
+        date: selectedDate,
       };
-      setEvents(prev => [...prev, newEvent]);
+      setEvents([...events, newEvent]);
       setShowCreatePopup(false);
       setEventTitle('');
       setEventLocation('');
@@ -279,19 +125,19 @@ const EventTracker = () => {
   };
 
   const handleEditEvent = () => {
+    setIsEditing(true);
     setEventTitle(selectedEvent.title);
     setEventLocation(selectedEvent.location);
-    setIsEditing(true);
+    setShowEventPopup(false);
   };
 
-  const handleUpdateEvent = () => {
-    if (eventTitle.trim()) {
-      setEvents(prev => prev.map(event => 
+  const handleSaveEdit = () => {
+    if (eventTitle.trim() && eventLocation.trim()) {
+      setEvents(events.map(event => 
         event.id === selectedEvent.id 
           ? { ...event, title: eventTitle, location: eventLocation }
           : event
       ));
-      setShowEventPopup(false);
       setIsEditing(false);
       setEventTitle('');
       setEventLocation('');
@@ -299,326 +145,275 @@ const EventTracker = () => {
   };
 
   const handleDeleteEvent = () => {
-    setEvents(prev => prev.filter(event => event.id !== selectedEvent.id));
+    setEvents(events.filter(event => event.id !== selectedEvent.id));
     setShowEventPopup(false);
   };
 
-  const eventStyleGetter = (event) => {
-    const today = new Date();
-    
-    if (dateUtils.isBeforeDay(event.start, today)) {
-      // Past events - pink background
-      return {
-        style: {
-          backgroundColor: 'rgb(222, 105, 135)'
-        }
-      };
-    } else {
-      // Upcoming events - green background
-      return {
-        style: {
-          backgroundColor: 'rgb(140, 189, 76)'
-        }
-      };
-    }
+  const navigateMonth = (direction) => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
   };
 
-  const getFilteredEvents = () => {
-    const today = new Date();
-    
-    switch (filter) {
-      case 'past':
-        return events.filter(event => dateUtils.isBeforeDay(event.start, today));
-      case 'upcoming':
-        return events.filter(event => dateUtils.isSameOrAfterDay(event.start, today));
-      default:
-        return events;
-    }
+  const closePopups = () => {
+    setShowCreatePopup(false);
+    setShowEventPopup(false);
+    setIsEditing(false);
   };
 
-  const filteredEvents = getFilteredEvents();
+  const days = getDaysInMonth(currentDate);
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '20px', color: '#333' }}>Event Tracker Calendar</h1>
-      
-      {/* Filter Buttons */}
-      <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-        <button 
-          className="btn"
-          onClick={() => setFilter('all')}
-          style={{
-            padding: '10px 20px',
-            margin: '0 5px',
-            backgroundColor: filter === 'all' ? '#007bff' : '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          All
-        </button>
-        <button 
-          className="btn"
-          onClick={() => setFilter('past')}
-          style={{
-            padding: '10px 20px',
-            margin: '0 5px',
-            backgroundColor: filter === 'past' ? '#007bff' : '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          Past
-        </button>
-        <button 
-          className="btn"
-          onClick={() => setFilter('upcoming')}
-          style={{
-            padding: '10px 20px',
-            margin: '0 5px',
-            backgroundColor: filter === 'upcoming' ? '#007bff' : '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          Upcoming
-        </button>
-      </div>
-
-      {/* Calendar */}
-      <Calendar
-        events={filteredEvents}
-        startAccessor="start"
-        endAccessor="end"
-        titleAccessor="title"
-        onSelectSlot={handleSelectSlot}
-        onSelectEvent={handleSelectEvent}
-        eventPropGetter={eventStyleGetter}
-        views={['month']}
-        defaultView="month"
-        style={{ height: '600px', border: '1px solid #ddd', borderRadius: '4px' }}
-      />
-
-      {/* Create Event Popup */}
-      <Popup
-        open={showCreatePopup}
-        closeOnDocumentClick
-        onClose={() => setShowCreatePopup(false)}
-      >
-        <div>
-          <h3 style={{ marginTop: 0, color: '#333' }}>Create New Event</h3>
-          <div style={{ marginBottom: '15px' }}>
-            <input
-              type="text"
-              placeholder="Event Title"
-              value={eventTitle}
-              onChange={(e) => setEventTitle(e.target.value)}
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Event Tracker Calendar</h1>
+          <div className="flex gap-2">
+            <button
+              className="btn px-4 py-2 rounded-md text-white font-medium transition-colors"
+              onClick={() => setFilter('All')}
               style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
+                backgroundColor: filter === 'All' ? '#3b82f6' : '#6b7280'
               }}
-            />
-          </div>
-          <div style={{ marginBottom: '15px' }}>
-            <input
-              type="text"
-              placeholder="Event Location"
-              value={eventLocation}
-              onChange={(e) => setEventLocation(e.target.value)}
+            >
+              All
+            </button>
+            <button
+              className="btn px-4 py-2 rounded-md text-white font-medium transition-colors"
+              onClick={() => setFilter('Past')}
               style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
+                backgroundColor: filter === 'Past' ? '#dc2626' : '#6b7280'
               }}
-            />
-          </div>
-          <div className="mm-popup__box__footer">
-            <div className="mm-popup__box__footer__right-space">
-              <button
-                className="mm-popup__btn"
-                onClick={handleCreateEvent}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  marginRight: '10px',
-                  fontSize: '14px'
-                }}
-              >
-                Save
-              </button>
-              <button
-                className="mm-popup__btn"
-                onClick={() => setShowCreatePopup(false)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
+            >
+              Past
+            </button>
+            <button
+              className="btn px-4 py-2 rounded-md text-white font-medium transition-colors"
+              onClick={() => setFilter('Upcoming')}
+              style={{
+                backgroundColor: filter === 'Upcoming' ? '#059669' : '#6b7280'
+              }}
+            >
+              Upcoming
+            </button>
           </div>
         </div>
-      </Popup>
 
-      {/* Event Details/Edit/Delete Popup */}
-      <Popup
-        open={showEventPopup}
-        closeOnDocumentClick
-        onClose={() => {
-          setShowEventPopup(false);
-          setIsEditing(false);
-          setEventTitle('');
-          setEventLocation('');
-        }}
-      >
-        <div>
-          {!isEditing ? (
-            <>
-              <h3 style={{ marginTop: 0, color: '#333' }}>Event Details</h3>
-              <p><strong>Title:</strong> {selectedEvent?.title}</p>
-              <p><strong>Location:</strong> {selectedEvent?.location}</p>
-              <p><strong>Date:</strong> {selectedEvent ? dateUtils.format(selectedEvent.start, 'MMMM D, YYYY') : ''}</p>
-              <div style={{ marginTop: '20px' }}>
-                <button
-                  className="mm-popup__btn mm-popup__btn--info"
-                  onClick={handleEditEvent}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#17a2b8',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    marginRight: '10px',
-                    fontSize: '14px'
-                  }}
+        {/* Calendar Navigation */}
+        <div className="flex justify-between items-center mb-4">
+          <button
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+            onClick={() => navigateMonth(-1)}
+          >
+            ← Prev
+          </button>
+          <h2 className="text-xl font-semibold text-gray-800">
+            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+          </h2>
+          <button
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+            onClick={() => navigateMonth(1)}
+          >
+            Next →
+          </button>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 bg-gray-100">
+            {dayNames.map(day => (
+              <div key={day} className="p-3 text-center font-semibold text-gray-700 border-r border-gray-200 last:border-r-0">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Days */}
+          <div className="grid grid-cols-7">
+            {days.map((dayInfo, index) => {
+              const dayEvents = getEventsForDate(dayInfo.date);
+              const isToday = formatDate(dayInfo.date) === formatDate(today);
+              
+              return (
+                <div
+                  key={index}
+                  className={`min-h-24 p-2 border-r border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
+                    !dayInfo.isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
+                  } ${isToday ? 'bg-blue-50' : ''}`}
+                  onClick={() => dayInfo.isCurrentMonth && handleDateClick(dayInfo.date)}
                 >
-                  Edit
-                </button>
+                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : ''}`}>
+                    {dayInfo.day}
+                  </div>
+                  <div className="space-y-1">
+                    {dayEvents.map(event => (
+                      <div
+                        key={event.id}
+                        className="rbc-event text-xs px-2 py-1 rounded text-white cursor-pointer hover:opacity-80 transition-opacity"
+                        style={{
+                          backgroundColor: isPastEvent(event.date) 
+                            ? 'rgb(222, 105, 135)' 
+                            : 'rgb(140, 189, 76)'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEvent(event);
+                          setShowEventPopup(true);
+                        }}
+                      >
+                        {event.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Create Event Popup */}
+        {showCreatePopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="mm-popup__box bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <div className="mm-popup__box__header flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Create Event</h3>
                 <button
-                  className="mm-popup__btn mm-popup__btn--danger"
-                  onClick={handleDeleteEvent}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
+                  onClick={closePopups}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
                 >
-                  Delete
+                  ×
                 </button>
               </div>
-            </>
-          ) : (
-            <>
-              <h3 style={{ marginTop: 0, color: '#333' }}>Edit Event</h3>
-              <div style={{ marginBottom: '15px' }}>
+              <div className="mm-popup__box__body space-y-4 mb-6">
                 <input
                   type="text"
                   placeholder="Event Title"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={eventTitle}
                   onChange={(e) => setEventTitle(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
                 />
-              </div>
-              <div style={{ marginBottom: '15px' }}>
                 <input
                   type="text"
                   placeholder="Event Location"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={eventLocation}
                   onChange={(e) => setEventLocation(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
                 />
               </div>
-              <div>
+              <div className="mm-popup__box__footer flex justify-between">
+                <div className="mm-popup__box__footer__left-space">
+                  <button 
+                    className="mm-popup__btn px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                    onClick={closePopups}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="mm-popup__box__footer__right-space">
+                  <button 
+                    className="mm-popup__btn px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                    onClick={handleCreateEvent}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Event Details Popup */}
+        {showEventPopup && selectedEvent && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="mm-popup__box bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <div className="mm-popup__box__header flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Event 3</h3>
                 <button
-                  className="mm-popup__btn"
-                  onClick={handleUpdateEvent}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    marginRight: '10px',
-                    fontSize: '14px'
-                  }}
+                  onClick={closePopups}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
                 >
-                  Save
-                </button>
-                <button
-                  className="mm-popup__btn"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEventTitle('');
-                    setEventLocation('');
-                  }}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Cancel
+                  ×
                 </button>
               </div>
-            </>
-          )}
-        </div>
-      </Popup>
+              <div className="mm-popup__box__body space-y-2 mb-6">
+                <div><span className="font-medium">Date:</span> {new Date(selectedEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div><span className="font-medium">Location:</span> {selectedEvent.location}</div>
+              </div>
+              <div className="mm-popup__box__footer flex justify-between">
+                <div className="mm-popup__box__footer__left-space">
+                  <button 
+                    className="mm-popup__btn mm-popup__btn--info px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                    onClick={handleEditEvent}
+                  >
+                    Edit
+                  </button>
+                </div>
+                <div className="mm-popup__box__footer__right-space">
+                  <button 
+                    className="mm-popup__btn mm-popup__btn--danger px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                    onClick={handleDeleteEvent}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Event Popup */}
+        {isEditing && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="mm-popup__box bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <div className="mm-popup__box__header flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Edit Event</h3>
+                <button
+                  onClick={closePopups}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="mm-popup__box__body space-y-4 mb-6">
+                <input
+                  type="text"
+                  placeholder="Event Title"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={eventTitle}
+                  onChange={(e) => setEventTitle(e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Event Location"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={eventLocation}
+                  onChange={(e) => setEventLocation(e.target.value)}
+                />
+              </div>
+              <div className="mm-popup__box__footer flex justify-between">
+                <div className="mm-popup__box__footer__left-space">
+                  <button 
+                    className="mm-popup__btn px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                    onClick={closePopups}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="mm-popup__box__footer__right-space">
+                  <button 
+                    className="mm-popup__btn px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                    onClick={handleSaveEdit}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-export default EventTracker;
+export default EventTrackerCalendar;
