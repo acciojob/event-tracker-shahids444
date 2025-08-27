@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from 'react';
 
 const EventTrackerCalendar = () => {
-  const [events, setEvents] = useState([]);
+  // Initialize with some sample events including past events
+  const [events, setEvents] = useState([
+    {
+      id: 1,
+      title: 'Past Event',
+      location: 'Test Location',
+      date: new Date(2025, 7, 20), // August 20, 2025 (past date)
+    },
+    {
+      id: 2,
+      title: 'Future Event',
+      location: 'Future Location',
+      date: new Date(2025, 8, 15), // September 15, 2025 (future date)
+    }
+  ]);
   const [filter, setFilter] = useState('All');
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 1)); // August 2025
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [showEventPopup, setShowEventPopup] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -449,6 +463,14 @@ const EventTrackerCalendar = () => {
       opacity: 0.8;
     }
 
+    .rbc-event-past {
+      background-color: rgb(222, 105, 135) !important;
+    }
+
+    .rbc-event-upcoming {
+      background-color: rgb(140, 189, 76) !important;
+    }
+
     .popup-overlay {
       position: fixed;
       top: 0;
@@ -753,29 +775,33 @@ const EventTrackerCalendar = () => {
                               {dayInfo.day}
                             </div>
                             <div>
-                              {dayEvents.map(event => (
-                                <button
-                                  key={event.id}
-                                  className="rbc-event"
-                                  style={{
-                                    backgroundColor: isPastEvent(event.date) 
-                                      ? 'rgb(222, 105, 135)' 
-                                      : 'rgb(140, 189, 76)',
-                                    border: 'none',
-                                    width: '100%',
-                                    textAlign: 'left'
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedEvent(event);
-                                    setShowEventPopup(true);
-                                  }}
-                                  data-testid={`event-${event.id}`}
-                                  data-event-type={isPastEvent(event.date) ? 'past' : 'upcoming'}
-                                >
-                                  {event.title}
-                                </button>
-                              ))}
+                              {dayEvents.map(event => {
+                                const isPast = isPastEvent(event.date);
+                                const backgroundColor = isPast ? 'rgb(222, 105, 135)' : 'rgb(140, 189, 76)';
+                                
+                                return (
+                                  <button
+                                    key={event.id}
+                                    className={`rbc-event ${isPast ? 'rbc-event-past' : 'rbc-event-upcoming'}`}
+                                    style={{
+                                      backgroundColor: backgroundColor,
+                                      border: 'none',
+                                      width: '100%',
+                                      textAlign: 'left'
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedEvent(event);
+                                      setShowEventPopup(true);
+                                    }}
+                                    data-testid={`event-${event.id}`}
+                                    data-event-type={isPast ? 'past' : 'upcoming'}
+                                    data-background-color={backgroundColor}
+                                  >
+                                    {event.title}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         );
