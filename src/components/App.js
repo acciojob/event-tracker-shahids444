@@ -637,7 +637,7 @@ const EventTrackerCalendar = () => {
                                     setShowEventPopup(true);
                                   }}
                                   data-testid={`event-${event.id}`}
-                                  data-event-type={isPast ? 'past' : 'upcoming'}  {/* ✅ Critical for testing */}
+                                  data-event-type={isPast ? 'past' : 'upcoming'} 
                                 >
                                   {event.title}
                                 </button>
