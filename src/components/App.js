@@ -355,6 +355,10 @@ const EventTrackerCalendar = () => {
       border-bottom: 1px solid #e5e7eb;
       cursor: pointer;
       position: relative;
+      min-height: 120px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
     }
 
     .rbc-day-bg:last-child {
@@ -363,6 +367,15 @@ const EventTrackerCalendar = () => {
 
     .rbc-day-bg:hover {
       background-color: #f9fafb;
+    }
+
+    .rbc-day-bg.current-month {
+      cursor: pointer;
+    }
+
+    .rbc-day-bg.other-month {
+      cursor: default;
+      background-color: #f8fafc;
     }
 
     .rbc-row-content {
@@ -645,10 +658,15 @@ const EventTrackerCalendar = () => {
                   <div className="rbc-row-bg">
                     {week.map((dayInfo, dayIndex) => (
                       <div
-                        key={`${weekIndex}-${dayIndex}`}
-                        className="rbc-day-bg"
+                        key={`bg-${weekIndex}-${dayIndex}`}
+                        className={`rbc-day-bg ${dayInfo.isCurrentMonth ? 'current-month' : 'other-month'}`}
                         onClick={() => dayInfo.isCurrentMonth && handleDateClick(dayInfo.date, dayInfo)}
                         data-date={formatDate(dayInfo.date)}
+                        data-testid={`calendar-day-${formatDate(dayInfo.date)}`}
+                        data-current-month={dayInfo.isCurrentMonth}
+                        style={{
+                          pointerEvents: dayInfo.isCurrentMonth ? 'auto' : 'none'
+                        }}
                       />
                     ))}
                   </div>
@@ -660,7 +678,11 @@ const EventTrackerCalendar = () => {
                       const isToday = formatDate(dayInfo.date) === formatDate(today);
                       
                       return (
-                        <div key={`${weekIndex}-${dayIndex}`} className="rbc-date-cell">
+                        <div 
+                          key={`content-${weekIndex}-${dayIndex}`} 
+                          className="rbc-date-cell"
+                          data-testid={`calendar-content-${formatDate(dayInfo.date)}`}
+                        >
                           <div 
                             className={`date-number ${
                               !dayInfo.isCurrentMonth ? 'other-month' : ''
@@ -683,6 +705,7 @@ const EventTrackerCalendar = () => {
                                   setSelectedEvent(event);
                                   setShowEventPopup(true);
                                 }}
+                                data-testid={`event-${event.id}`}
                               >
                                 {event.title}
                               </div>
