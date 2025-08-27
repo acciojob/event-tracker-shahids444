@@ -267,6 +267,10 @@ const EventTrackerCalendar = () => {
       gap: 8px;
     }
 
+    .filter-item {
+      display: flex;
+    }
+
     .btn {
       padding: 8px 16px;
       border-radius: 6px;
@@ -606,45 +610,74 @@ const EventTrackerCalendar = () => {
           <div className="header">
             <h1>Event Tracker Calendar</h1>
             <div className="filter-buttons">
-              <button
-                className="btn"
-                onClick={() => setFilter('All')}
-                style={{
-                  backgroundColor: filter === 'All' ? '#3b82f6' : '#6b7280'
-                }}
-              >
-                All
-              </button>
-              <button
-                className="btn"
-                onClick={() => setFilter('Past')}
-                style={{
-                  backgroundColor: filter === 'Past' ? '#dc2626' : '#6b7280'
-                }}
-              >
-                Past
-              </button>
-              <button
-                className="btn"
-                onClick={() => setFilter('Upcoming')}
-                style={{
-                  backgroundColor: filter === 'Upcoming' ? '#059669' : '#6b7280'
-                }}
-              >
-                Upcoming
-              </button>
+              <div className="filter-item">
+                <button
+                  className="btn"
+                  onClick={() => setFilter('All')}
+                  data-testid="filter-all"
+                  style={{
+                    backgroundColor: filter === 'All' ? '#3b82f6' : '#6b7280'
+                  }}
+                >
+                  All
+                </button>
+              </div>
+              <div className="filter-item">
+                <button
+                  className="btn"
+                  onClick={() => setFilter('Past')}
+                  data-testid="filter-past"
+                  style={{
+                    backgroundColor: filter === 'Past' ? '#dc2626' : '#6b7280'
+                  }}
+                >
+                  Past
+                </button>
+              </div>
+              <div className="filter-item">
+                <button
+                  className="btn"
+                  onClick={() => setFilter('Upcoming')}
+                  data-testid="filter-upcoming"
+                  style={{
+                    backgroundColor: filter === 'Upcoming' ? '#059669' : '#6b7280'
+                  }}
+                >
+                  Upcoming
+                </button>
+              </div>
+              <div className="filter-item">
+                <button
+                  className="btn"
+                  onClick={() => setCurrentDate(new Date())}
+                  data-testid="filter-today"
+                  style={{
+                    backgroundColor: '#8b5cf6'
+                  }}
+                >
+                  Today
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Calendar Navigation */}
           <div className="nav-header">
-            <button className="nav-btn" onClick={() => navigateMonth(-1)}>
+            <button 
+              className="nav-btn" 
+              onClick={() => navigateMonth(-1)}
+              data-testid="prev-month"
+            >
               ← Prev
             </button>
             <h2 className="month-title">
               {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </h2>
-            <button className="nav-btn" onClick={() => navigateMonth(1)}>
+            <button 
+              className="nav-btn" 
+              onClick={() => navigateMonth(1)}
+              data-testid="next-month"
+            >
               Next →
             </button>
           </div>
@@ -780,7 +813,11 @@ const EventTrackerCalendar = () => {
                 </div>
                 <div className="mm-popup__box__footer">
                   <div className="mm-popup__box__footer__left-space">
-                    <button className="mm-popup__btn mm-popup__btn--cancel" onClick={closePopups}>
+                    <button 
+                      className="mm-popup__btn mm-popup__btn--cancel" 
+                      onClick={closePopups}
+                      data-testid="cancel-create-event"
+                    >
                       Cancel
                     </button>
                   </div>
@@ -813,12 +850,20 @@ const EventTrackerCalendar = () => {
                 </div>
                 <div className="mm-popup__box__footer">
                   <div className="mm-popup__box__footer__left-space">
-                    <button className="mm-popup__btn mm-popup__btn--info" onClick={handleEditEvent}>
+                    <button 
+                      className="mm-popup__btn mm-popup__btn--info" 
+                      onClick={handleEditEvent}
+                      data-testid="edit-event-button"
+                    >
                       Edit
                     </button>
                   </div>
                   <div className="mm-popup__box__footer__right-space">
-                    <button className="mm-popup__btn mm-popup__btn--danger" onClick={handleDeleteEvent}>
+                    <button 
+                      className="mm-popup__btn mm-popup__btn--danger" 
+                      onClick={handleDeleteEvent}
+                      data-testid="delete-event-button"
+                    >
                       Delete
                     </button>
                   </div>
@@ -861,7 +906,11 @@ const EventTrackerCalendar = () => {
                 </div>
                 <div className="mm-popup__box__footer">
                   <div className="mm-popup__box__footer__left-space">
-                    <button className="mm-popup__btn mm-popup__btn--cancel" onClick={closePopups}>
+                    <button 
+                      className="mm-popup__btn mm-popup__btn--cancel" 
+                      onClick={closePopups}
+                      data-testid="cancel-edit-event"
+                    >
                       Cancel
                     </button>
                   </div>
